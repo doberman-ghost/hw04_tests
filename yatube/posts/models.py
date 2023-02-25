@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -26,6 +25,7 @@ class Group(models.Model):
 
 
 class Post(models.Model):
+    CUT_TEXT = 15
     text = models.TextField(
         verbose_name="Текст поста",
         help_text="Текст нового поста",
@@ -56,4 +56,4 @@ class Post(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.text[:settings.CUT_TEXT]
+        return self.text[:self.CUT_TEXT]
