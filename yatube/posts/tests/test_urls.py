@@ -1,9 +1,10 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
 from django.test import TestCase, Client
 from django.core.cache import cache
 from django.urls import reverse
+from django.conf import settings
 
 from ..models import Group, Post
 
@@ -44,7 +45,8 @@ class PostURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
+        self.authorized_client_no_author = Client()
+        self.authorized_client_no_author.force_login(self.user_no_author)
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         cache.clear()
@@ -62,7 +64,50 @@ class PostURLTests(TestCase):
         for _, _, _, address, status, bol in self.urls:
             with self.subTest(address=address):
                 if bol:
-                    response = self.guest_client.get(address)
+                    response = self.client.get(address)
                 else:
                     response = self.authorized_client.get(address)
                 self.assertEqual(response.status_code, status)
+
+    def test_edit_urls_only_for_author(self):
+        """Запись может редактировать только автор + перенаправление."""
+        users = (
+            (self.client,),
+            (self.authorized_client_no_author,),
+        )
+        for user in users:
+            with self.subTest(user=user):
+                reverse_name = reverse('posts:post_edit', args=(self.post.id,))
+                response = self.client.post(reverse_name)
+                if user == self.authorized_client_no_author:
+                    self.assertRedirects(response, reverse(
+                        'posts:post_detail', args=(self.post.id,)),
+                    )
+                else:
+                    login = reverse(settings.LOGIN_URL)
+                    self.assertRedirects(
+                        response,
+                        f'{login}?{REDIRECT_FIELD_NAME}={reverse_name}',
+                    )
+
+    def test_urls_redirects_of_an_unauthorized_user(self):
+        """Доступности адресов страниц для неавторизованного пользователя."""
+        rederict_urls = (
+            'posts:post_create',
+            'posts:post_edit',
+
+        )
+        for url, args, _, _, _, _ in self.urls:
+            if url is not None:
+                reverse_name = reverse(url, args=args)
+                with self.subTest(reverse_name=reverse_name):
+                    if url in rederict_urls:
+                        response = self.client.get(reverse_name, follow=True)
+                        login = reverse(settings.LOGIN_URL)
+                        self.assertRedirects(
+                            response,
+                            f'{login}?{REDIRECT_FIELD_NAME}={reverse_name}',
+                        )
+                    else:
+                        response = self.client.get(reverse_name)
+                        self.assertEqual(response.status_code, HTTPStatus.OK)

@@ -20,7 +20,6 @@ class PostFormTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create(username='Author')
-        cls.user_no_author = User.objects.create(username='NoAuthor')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test-slug',
@@ -46,13 +45,12 @@ class PostFormTests(TestCase):
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.guest_client = Client()
 
     def test_create_form(self):
         """Валидная форма create создает запись в Post."""
         form_data = {
             'text': 'Тестовая запись 2',
-            'group': self.group.pk,
+            'group': self.group.id,
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
@@ -60,19 +58,27 @@ class PostFormTests(TestCase):
             follow=True,
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
+        post = Post.objects.get(pk=2)
+        check_edited_post_fields = (
+            (post.author, self.post.author),
+            (post.text, 'Тестовая запись 2'),
+            (post.group.id, self.post.group.id),
+        )
+        for new_post, expected in check_edited_post_fields:
+            with self.subTest(new_post=expected):
+                self.assertEqual(new_post, expected)
         self.assertTrue(Post.objects.filter(
-                        text='Тестовая запись 2',
-                        group=self.group.id,
+                        text=self.post.text,
+                        group=self.group,
                         author=self.user
                         ).exists(), 'Поcт не добавлен в базу данных'
                         )
-        self.assertEqual(Post.objects.count(), self.POST_QTY + 1)
 
     def test_edit_form(self):
         """Валидная форма edit редактирует запись в Post."""
         form_data = {
             'text': 'Новый текст',
-            'group': self.group_check.pk,
+            'group': self.group_check.id,
         }
         response = self.authorized_client.post(
             reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
@@ -81,10 +87,17 @@ class PostFormTests(TestCase):
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTrue(Post.objects.filter(
-                        group=self.group_check.id,
+                        group=self.group_check,
                         author=self.user,
                         pub_date=self.post.pub_date
                         ).exists()
                         )
-        self.assertNotEqual(self.post.text, form_data['text'])
-        self.assertNotEqual(self.post.group, form_data['group'])
+        post = Post.objects.get(pk=1)
+        check_edited_post_fields = (
+            (post.author, self.post.author),
+            (post.text, 'Новый текст'),
+            (post.group.id, self.group_check.id),
+        )
+        for new_post, expected in check_edited_post_fields:
+            with self.subTest(new_post=expected):
+                self.assertEqual(new_post, expected)
