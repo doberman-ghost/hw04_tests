@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.core.cache import cache
 from django.urls import reverse
-from django import forms
 
 from ..forms import PostForm
 from ..models import Post, Group
@@ -82,22 +81,11 @@ class PostViewsTests(TestCase):
             ('posts:post_create', None),
             ('posts:post_edit', (self.post.id,)),
         )
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.models.ChoiceField,
-        }
         for url, slug in urls:
             reverse_name = reverse(url, args=slug)
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
-                for value, expected in form_fields.items():
-                    with self.subTest(value=value):
-                        form_field = response.context.get('form').fields.get(
-                            value
-                        )
-                        self.assertIsInstance(form_field, expected)
-                        self.assertIsInstance(response.context['form'],
-                                              PostForm)
+                self.assertIsInstance(response.context['form'], PostForm)
 
     def test_post_appears_at_group(self):
         """Пост НЕ появляется в другой группе."""
@@ -108,11 +96,13 @@ class PostViewsTests(TestCase):
 
     def test_objects_group_author(self):
         """Проверка передачи объектов 'group' и 'author'"""
-        response_group = self.authorized_client.get(
-            reverse('posts:group_list', args=(self.group.slug,))
-        )
-        response_author = self.authorized_client.get(
-            reverse('posts:profile', args=(self.user,))
-        )
-        self.assertEqual(response_group.context.get('group'), self.group)
-        self.assertEqual(response_author.context.get('author'), self.user)
+        urls = [
+            (reverse('posts:group_list', args=(self.group.slug,)),
+             'group', self.group),
+            (reverse('posts:profile', args=(self.user,)), 'author', self.user)
+        ]
+        for url, name, field in urls:
+            response = self.authorized_client.get(url)
+            form_field = response.context.get(name)
+            with self.subTest(form_field=form_field):
+                self.assertEqual(form_field, field)

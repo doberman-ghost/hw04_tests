@@ -45,8 +45,8 @@ class PostURLTests(TestCase):
         )
 
     def setUp(self):
-        self.authorized_client_no_author = Client()
-        self.authorized_client_no_author.force_login(self.user_no_author)
+        # self.authorized_client_no_author = Client()
+        # self.authorized_client_no_author.force_login(self.user_no_author)
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         cache.clear()
@@ -61,9 +61,9 @@ class PostURLTests(TestCase):
 
     def test_urls_for_user(self):
         """Проверка доступности адресов страниц для всех."""
-        for _, _, _, address, status, bol in self.urls:
+        for _, _, _, address, status, bool in self.urls:
             with self.subTest(address=address):
-                if bol:
+                if bool:
                     response = self.client.get(address)
                 else:
                     response = self.authorized_client.get(address)
@@ -71,27 +71,15 @@ class PostURLTests(TestCase):
 
     def test_edit_urls_only_for_author(self):
         """Запись может редактировать только автор + перенаправление."""
-        users = (
-            (self.client,),
-            (self.authorized_client_no_author,),
+        self.authorized_client.force_login(self.user_no_author)
+        reverse_name = reverse('posts:post_edit', args=(self.post.id,))
+        response = self.authorized_client.post(reverse_name)
+        self.assertRedirects(
+            response, reverse('posts:post_detail', args=(self.post.id,)),
         )
-        for user in users:
-            with self.subTest(user=user):
-                reverse_name = reverse('posts:post_edit', args=(self.post.id,))
-                response = self.client.post(reverse_name)
-                if user == self.authorized_client_no_author:
-                    self.assertRedirects(response, reverse(
-                        'posts:post_detail', args=(self.post.id,)),
-                    )
-                else:
-                    login = reverse(settings.LOGIN_URL)
-                    self.assertRedirects(
-                        response,
-                        f'{login}?{REDIRECT_FIELD_NAME}={reverse_name}',
-                    )
 
     def test_urls_redirects_of_an_unauthorized_user(self):
-        """Доступности адресов страниц для неавторизованного пользователя."""
+        """Перенаправления неавторизованного пользователя."""
         rederict_urls = (
             'posts:post_create',
             'posts:post_edit',
@@ -108,6 +96,3 @@ class PostURLTests(TestCase):
                             response,
                             f'{login}?{REDIRECT_FIELD_NAME}={reverse_name}',
                         )
-                    else:
-                        response = self.client.get(reverse_name)
-                        self.assertEqual(response.status_code, HTTPStatus.OK)

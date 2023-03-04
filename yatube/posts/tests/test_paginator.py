@@ -15,8 +15,6 @@ class PaginatorViewsTest(TestCase):
     def setUp(self):
         self.guest_client = Client()
         self.user = User.objects.create(username='Author')
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
         self.group = Group.objects.create(
             title='Тестовая группа',
             slug='test_group'
@@ -35,12 +33,23 @@ class PaginatorViewsTest(TestCase):
                         kwargs={'username': f'{self.user.username}'}),
                 reverse('posts:group_list',
                         kwargs={'slug': f'{self.group.slug}'}))
-        for page in urls:
-            response_firts_post = self.guest_client.get(page)
-            response_second_post = self.guest_client.get(page + '?page=2')
+        for url in urls:
+            page_float = self.TEST_OF_POST % settings.PAGES
+            page = self.TEST_OF_POST // settings.PAGES
+            if page_float > 0:
+                response_second_post = self.guest_client.get(
+                    f'{url}?page={page+1}'
+                )
+            else:
+                response_second_post = self.guest_client.get(
+                    f'{url}?page={page}'
+                )
+            response_firts_post = self.guest_client.get(url)
             count_posts_first = len(response_firts_post.context['page_obj'])
             count_posts_second = len(response_second_post.context['page_obj'])
             self.assertEqual(count_posts_first,
                              settings.PAGES)
-            self.assertEqual(count_posts_second,
-                             self.TEST_OF_POST % settings.PAGES)
+            if page_float > 0:
+                self.assertEqual(count_posts_second, page_float)
+            else:
+                self.assertEqual(count_posts_second, settings.PAGES)
