@@ -1,3 +1,4 @@
+from http import HTTPStatus
 import shutil
 import tempfile
 
@@ -47,6 +48,7 @@ class PostFormTests(TestCase):
 
     def test_create_form(self):
         """Валидная форма create создает запись в Post."""
+        Post.objects.all().delete()
         form_data = {
             'text': self.post.text,
             'group': self.group.id,
@@ -56,21 +58,15 @@ class PostFormTests(TestCase):
             data=form_data,
             follow=True,
         )
-        self.assertEqual(
-            response.context.get('post').text,
-            form_data['text'])
-        self.assertEqual(
-            response.context.get('post').group.id,
-            form_data['group'])
-        # post = Post.objects.get(pk=2)
-        # check_edited_post_fields = (
-        #     (post.author, self.post.author),
-        #     (post.text, 'Тестовая запись 2'),
-        #     (post.group.id, self.post.group.id),
-        # )
-        # for new_post, expected in check_edited_post_fields:
-        #     with self.subTest(new_post=expected):
-        #         self.assertEqual(new_post, expected)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        post = Post.objects.latest('group')
+        check_edited_post_fields = (
+            (post.text, form_data['text']),
+            (post.group.id, form_data['group']),
+        )
+        for new_post, expected in check_edited_post_fields:
+            with self.subTest(new_post=expected):
+                self.assertEqual(new_post, expected)
 
     def test_edit_form(self):
         """Валидная форма edit редактирует запись в Post."""
@@ -83,18 +79,12 @@ class PostFormTests(TestCase):
             data=form_data,
             follow=True
         )
-        self.assertEqual(
-            response.context.get('post').text,
-            form_data['text'])
-        self.assertEqual(
-            response.context.get('post').group.id,
-            form_data['group'])
-        # post = Post.objects.get(pk=1)
-        # check_edited_post_fields = (
-        #     (post.author, self.post.author),
-        #     (post.text, 'Новый текст'),
-        #     (post.group.id, self.group_check.id),
-        # )
-        # for new_post, expected in check_edited_post_fields:
-        #     with self.subTest(new_post=expected):
-        #         self.assertEqual(new_post, expected)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        post = Post.objects.get(pk=self.post.id)
+        check_edited_post_fields = (
+            (post.text, form_data['text']),
+            (post.group.id, form_data['group']),
+        )
+        for new_post, expected in check_edited_post_fields:
+            with self.subTest(new_post=expected):
+                self.assertEqual(new_post, expected)

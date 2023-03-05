@@ -45,8 +45,6 @@ class PostURLTests(TestCase):
         )
 
     def setUp(self):
-        # self.authorized_client_no_author = Client()
-        # self.authorized_client_no_author.force_login(self.user_no_author)
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         cache.clear()
