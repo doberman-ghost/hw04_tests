@@ -83,7 +83,7 @@ class PostFormTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         post = Post.objects.get(pk=self.post.id)
         check_edited_post_fields = (
-            (post.author, self.user),
+            (post.author, self.post.author),
             (post.text, form_data['text']),
             (post.group.id, form_data['group']),
         )
