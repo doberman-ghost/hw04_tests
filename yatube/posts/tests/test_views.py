@@ -1,14 +1,22 @@
+import shutil
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.core.cache import cache
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 
 from ..forms import PostForm
 from ..models import Post, Group
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+
 User = get_user_model()
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -25,10 +33,24 @@ class PostViewsTests(TestCase):
         )
         cls.user = User.objects.create_user(username='Author')
         cls.user_no_author = User.objects.create_user(username='NoAuthor')
+        cls.small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        cls.uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=cls.small_gif,
+            content_type='image/gif'
+        )
         cls.post = Post.objects.create(
             text='Пробный текст',
             author=cls.user,
             group=cls.group,
+            image=cls.uploaded,
         )
         cls.urls = (
             ('posts:index', None, 'posts/index.html'),
@@ -38,6 +60,11 @@ class PostViewsTests(TestCase):
             ('posts:post_create', None, 'posts/create_post.html'),
             ('posts:post_edit', (cls.post.id,), 'posts/create_post.html'),
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         self.authorized_client = Client()
@@ -58,6 +85,7 @@ class PostViewsTests(TestCase):
         self.assertEqual(post.pub_date, self.post.pub_date)
         self.assertEqual(post.author, self.user)
         self.assertEqual(post.group, self.group)
+        self.assertEqual(post.image, self.post.image)
 
     def test_index__group_profil_page_show_correct_context(self):
         """Шаблон index, group, profile сформирован с правильным контекстом."""

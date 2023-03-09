@@ -34,7 +34,13 @@
         </div>
         {% endfor %}
         {% endif %}
-        <form method="post" href="{% if form.instance.pk %}{% url 'posts:post_edit' form.instance.pk %}{% else %}{% url 'posts:post_create' %}{% endif %}">
+        <form method="post"
+              enctype="multipart/form-data"
+              href="{% if form.instance.pk %}
+                    {% url 'posts:post_edit' form.instance.pk %}
+                    {% else %}{% url 'posts:post_create' %}
+                    {% endif %}"
+        >
           {% csrf_token %}
           {% for field in form %}
           <div class="form-group row my-3 p-3">

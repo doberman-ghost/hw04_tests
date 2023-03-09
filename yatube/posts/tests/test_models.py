@@ -1,4 +1,4 @@
-from ..models import Group, Post
+from ..models import Group, Post, CUT_TEXT
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -25,7 +25,7 @@ class PostModelTest(TestCase):
         """Проверяем, что у моделей корректно работает __str__."""
         title = (
             (self.group, self.group.title),
-            (self.post, self.post.text[:Post.CUT_TEXT])
+            (self.post, self.post.text[:CUT_TEXT])
         )
         for fields, expected_name in title:
             with self.subTest(fields=fields):
@@ -38,6 +38,7 @@ class PostModelTest(TestCase):
             ('pub_date', 'Дата публикации'),
             ('author', 'Автор'),
             ('group', 'Группа'),
+            ('image', 'Картинка'),
         ]
         for field, expected_value in field_verboses:
             with self.subTest(field=field):
@@ -53,6 +54,7 @@ class PostModelTest(TestCase):
             ('pub_date', 'Укажите дату.'),
             ('author', 'Укажите автора.'),
             ('group', 'Группа, к которой будет относиться пост'),
+            ('image', 'Загрузите картинку'),
         ]
         for field, expected_value in field_help_texts:
             with self.subTest(field=field):
