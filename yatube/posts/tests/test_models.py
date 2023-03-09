@@ -1,4 +1,4 @@
-from ..models import Group, Post, CUT_TEXT
+from ..models import Group, Post, Comment, CUT_TEXT
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -19,6 +19,10 @@ class PostModelTest(TestCase):
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост',
+        )
+        cls.comment = Comment.objects.create(
+            author=cls.user,
+            text='Тестовый комент'
         )
 
     def test_models_have_correct_object_names(self):
@@ -88,5 +92,32 @@ class PostModelTest(TestCase):
             with self.subTest(field=field):
                 self.assertEqual(
                     PostModelTest.group._meta.get_field(field).help_text,
+                    expected_value
+                )
+
+    def test_comment_verboses_names(self):
+        """Comment verbose_name в полях совпадает с ожидаемым."""
+        field_verboses = [
+            ('post', 'Коментарии'),
+            ('text', 'Текст комментария'),
+            ('author', 'Автор коментария'),
+            ('created', 'Дата комментария'),
+        ]
+        for field, expected_value in field_verboses:
+            with self.subTest(field=field):
+                self.assertEqual(
+                    PostModelTest.comment._meta.get_field(field).verbose_name,
+                    expected_value
+                )
+
+    def test_group_help_text(self):
+        """Comment help_text в полях совпадает с ожидаемым."""
+        field_help_texts = [
+            ('text', 'Напишите текст комментария'),
+        ]
+        for field, expected_value in field_help_texts:
+            with self.subTest(field=field):
+                self.assertEqual(
+                    PostModelTest.comment._meta.get_field(field).help_text,
                     expected_value
                 )

@@ -2,14 +2,13 @@ from http import HTTPStatus
 import shutil
 import tempfile
 
-# from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Group, Post, Comment
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -90,7 +89,6 @@ class PostFormTests(TestCase):
 
     def test_edit_form(self):
         """Валидная форма edit редактирует запись в Post."""
-        print(Post.objects.count())
         image = SimpleUploadedFile(
             name='new_small.gif',
             content=self.bytes_image,
@@ -106,7 +104,6 @@ class PostFormTests(TestCase):
             data=form_data,
             follow=True
         )
-        print(Post.objects.count())
         self.assertEqual(response.status_code, HTTPStatus.OK)
         post = Post.objects.get(pk=self.post.id)
         check_edited_post_fields = (
@@ -118,3 +115,24 @@ class PostFormTests(TestCase):
         for new_post, expected in check_edited_post_fields:
             with self.subTest(new_post=expected):
                 self.assertEqual(new_post, expected)
+
+    def test_comment_for_registered_users(self):
+        """Комментарии могут оставлять зарегистрированные пользователи.
+        + комментарий появляется на странице"""
+        comment_count = Comment.objects.count()
+        comment_data = {
+            'text': 'тестовый коммент',
+        }
+        reverse_name = reverse('posts:add_comment', args=(self.post.id,))
+        response = self.authorized_client.post(reverse_name,
+                                               data=comment_data,
+                                               follow=True,
+                                               )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertRedirects(response, reverse(
+            'posts:post_detail', args=(self.post.id,))
+        )
+        comment = Comment.objects.first()
+        self.assertEqual(comment.text, comment_data['text'])
+        self.assertEqual(Comment.objects.count(),
+                         comment_count + self.POST_QTY)

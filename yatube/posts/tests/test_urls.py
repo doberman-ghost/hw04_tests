@@ -42,6 +42,16 @@ class PostURLTests(TestCase):
              f'/posts/{cls.post.id}/edit/', HTTPStatus.OK, False),
             (None, None, None, '/unexisting_page/',
              HTTPStatus.NOT_FOUND, False),
+            ('posts:add_comment', (cls.post.id,), None,
+             f'/posts/{cls.post.id}/comment/', HTTPStatus.FOUND, False),
+            ('posts:follow_index', None, 'posts/follow.html',
+             '/follow/', HTTPStatus.OK, False),
+            ('posts:profile_follow', (cls.user,), None,
+             f'/profile/{cls.user.username}/follow/',
+             HTTPStatus.FOUND, False),
+            ('posts:profile_unfollow', (cls.user,), None,
+             f'/profile/{cls.user.username}/unfollow/',
+             HTTPStatus.FOUND, False),
         )
 
     def setUp(self):
@@ -81,7 +91,7 @@ class PostURLTests(TestCase):
         rederict_urls = (
             'posts:post_create',
             'posts:post_edit',
-
+            'posts:add_comment'
         )
         for url, args, _, _, _, _ in self.urls:
             if url is not None:

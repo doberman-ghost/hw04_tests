@@ -89,7 +89,7 @@ class Comment(models.Model):
     )
     text = models.TextField(
         verbose_name="Текст комментария",
-        help_text="Напишите, текст комментария",
+        help_text="Напишите текст комментария",
     )
     created = models.DateTimeField(
         verbose_name="Дата комментария",
@@ -102,3 +102,22 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text[:CUT_TEXT]
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Подписчик",
+        related_name="follower",
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Автор",
+        related_name="following",
+    )
+
+    class Meta:
+        verbose_name = "Подписчик"
+        verbose_name_plural = "Подписчики"
